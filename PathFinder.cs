@@ -143,7 +143,7 @@ public class PathFinder
                 dist += distFromCenter;
             }
         }
-        // start in dir or get bigger dist
+/*        // start in dir or get bigger dist
         if (nodeB.gridX - nodeA.gridX != dir1.x && nodeB.gridY - nodeA.gridY != dir1.y && nodeA.gCost < 5)
         {
             dist += distFromCenter;
@@ -151,7 +151,7 @@ public class PathFinder
         if(nodeA.gridX - nodeB.gridX != dir2.x && nodeA.gridY - nodeB.gridY != dir2.y && nodeA.hCost < 5)
         {
             dist += distFromCenter;
-        }
+        }*/
 
         return dist;
     }
