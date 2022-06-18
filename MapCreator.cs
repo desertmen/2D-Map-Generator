@@ -1,31 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System;
-using SDiag = System.Diagnostics;
+using UnityEditor;
 
 public class MapCreator : MonoBehaviour
 {
     public enum RoomTypes
     {
         Room,
-    };
-
-    [System.Serializable]
-    public struct Room
-    {
-        public string RoomName;
-        public Sprite RoomSprite;
-        public Material SpriteMaterial;
-        public RoomTypes RoomType;
-        public Vector2 Size;
-        public GameObject Gate;
-        public float GateThickness;
-        public RoomInfo RoomInfo;
-        [HideInInspector]
-        public Vector2 Position;
-        [HideInInspector]
-        public GameObject RoomObject;
     };
 
     [System.Serializable]
@@ -81,7 +63,6 @@ public class MapCreator : MonoBehaviour
         transform.localScale = Vector3.one;
         Vector3 pos = transform.position;
         transform.position = Vector3.zero;
-        roundSize();
         correctInputs();
         deleteAllChildren();
         grid = createGrid();
@@ -91,6 +72,7 @@ public class MapCreator : MonoBehaviour
         secondTry = false;
         transform.position = pos;
         transform.localScale = scale * Vector3.one;
+        scaleLights(scale * 2);
         spawnPlayer();
     }
 
@@ -122,13 +104,21 @@ public class MapCreator : MonoBehaviour
         }
     }
 
+    private void scaleLights(float scale)
+    {
+        foreach(Room room in builtRooms)
+        {
+            room.scaleLights(scale, room.transform.localScale.x);
+        }
+    }
+
     private void spawnPlayer()
     {
         int i = UnityEngine.Random.Range(0, builtRooms.Count);
         Room spawnRoom = builtRooms[i];
-        RoomBehaviour roomBehaviour = spawnRoom.RoomObject.GetComponent<RoomBehaviour>();
+        RoomBehaviour roomBehaviour = spawnRoom.gameObject.GetComponent<RoomBehaviour>();
         roomBehaviour.enabled = false;
-        playerTransform.position = ((Vector3)(spawnRoom.Position + spawnRoom.Size/2f) * scale + transform.position);
+        playerTransform.position = ((Vector3)(spawnRoom.position) * scale + transform.position);
     }
 
     private void createCollider()
@@ -227,8 +217,8 @@ public class MapCreator : MonoBehaviour
         Vector2Int startpos = Vector2Int.zero;
         foreach(Room room in builtRooms)
         {
-            Vector2 pos1 = room.Position + Vector2.left;
-            Vector2 pos2 = room.Position + Vector2.down;
+            Vector2 pos1 = room.position - (Vector2)room.size/2f + Vector2.left;
+            Vector2 pos2 = room.position - (Vector2)room.size/2f + Vector2.down;
             if(pos1.x >= 0 && pos1.x < grid.GetLength(0) && pos1.y >= 0 && pos1.y < grid.GetLength(1))
             {
                 if(grid[(int)pos1.x, (int)pos1.y] == false)
@@ -253,14 +243,13 @@ public class MapCreator : MonoBehaviour
     // TODO create gate on room - boxcollider goes a bit out to corridor (in line with room)
     private void createGate(Room room, Vector2 pos, Vector2 dir)
     {
-        GateScript gateScript = room.Gate.GetComponent<GateScript>();
         Vector2 absDir = new Vector2(Mathf.Abs(dir.x), Mathf.Abs(dir.y));
         Vector2 offset = ((dir - absDir) / 2f).magnitude * Vector2.one;
-        GameObject gate = Instantiate(room.Gate);
-        Vector3 gatePos = pos + new Vector2(dir.y, dir.x) / 2f - dir * wallThicknes + dir * room.GateThickness / 2f + offset;
+        GameObject gate = Instantiate(room.gate);
+        Vector3 gatePos = pos + new Vector2(dir.y, dir.x) / 2f - dir * wallThicknes + dir * room.gateThickness / 2f + offset;
         gate.transform.position = gatePos;
         gate.transform.rotation = Quaternion.Euler(0, 0, Mathf.Abs(dir.y) * 90);
-        gate.transform.parent = room.RoomObject.transform;
+        gate.transform.parent = room.transform;
     }
 
     // create all corridors
@@ -270,7 +259,7 @@ public class MapCreator : MonoBehaviour
         Vector2[] points = new Vector2[builtRooms.Count];
         for (int i = 0; i < points.Length; i++)
         {
-            points[i] = builtRooms[i].Position + builtRooms[i].Size / 2f + new Vector2(transform.position.x, transform.position.y);
+            points[i] = builtRooms[i].position + new Vector2(transform.position.x, transform.position.y);
         }
         if (points.Length < 2)
         {
@@ -296,11 +285,13 @@ public class MapCreator : MonoBehaviour
         Vector2[] startEndCoords = getStartEndCorridorCoords(room1, room2);
         Vector2 pos = transform.position;
 
-        if (isInsideRect(room1.Position - Vector2.one, room1.Position + room1.Size, startEndCoords[0]) || isInsideRect(room1.Position, room1.Position + room1.Size, startEndCoords[0]))
+        if (isInsideRect(room1.position - (Vector2)room1.size/2f - Vector2.one, room1.position + (Vector2)room1.size / 2f, startEndCoords[0]) || 
+            isInsideRect(room1.position - (Vector2)room1.size / 2f, room1.position + (Vector2)room1.size / 2f, startEndCoords[0]))
         {
             startEndCoords[0] += startEndCoords[2];
         }
-        if (isInsideRect(room2.Position - Vector2.one, room2.Position + room2.Size, startEndCoords[1]) || isInsideRect(room2.Position, room2.Position + room2.Size, startEndCoords[1]))
+        if (isInsideRect(room2.position - (Vector2)room2.size/2f - Vector2.one, room2.position + (Vector2)room2.size / 2f, startEndCoords[1]) ||
+            isInsideRect(room2.position - (Vector2)room2.size / 2f, room2.position + (Vector2)room2.size / 2f, startEndCoords[1]))
         {
             startEndCoords[1] += startEndCoords[3];
         }
@@ -410,8 +401,8 @@ public class MapCreator : MonoBehaviour
     // return start, end positions of corridor and directions from room1 room2
     private Vector2[] getStartEndCorridorCoords(Room room1, Room room2)
     {
-        Vector2 room1Center = room1.Position + room1.Size / 2f;
-        Vector2 room2Center = room2.Position + room2.Size / 2f;
+        Vector2 room1Center = room1.position;
+        Vector2 room2Center = room2.position;
         Vector2 dirFrom1to2 = room2Center - room1Center;
         Vector2 dir1 = getBinaryDir(room1, dirFrom1to2);
         Vector2 dir2 = getBinaryDir(room2, -dirFrom1to2);
@@ -420,27 +411,27 @@ public class MapCreator : MonoBehaviour
         
         if((dirFrom1to2 * dir1).magnitude == 0 || (dirFrom1to2 * dir2).magnitude == 0)
         {
-            posOnRoom1 = dir1 * room1.Size / 2f;
-            posOnRoom2 = dir2 * room2.Size / 2f;
+            posOnRoom1 = dir1 * room1.size / 2f;
+            posOnRoom2 = dir2 * room2.size / 2f;
         }
         else
         {
-            posOnRoom1 = dirFrom1to2 * (dir1 * room1.Size/2f).magnitude / (dirFrom1to2 * dir1).magnitude;
-            posOnRoom2 = -dirFrom1to2 * (dir2 * room2.Size/2f).magnitude / (dirFrom1to2 * dir2).magnitude;
+            posOnRoom1 = dirFrom1to2 * (dir1 * room1.size/2f).magnitude / (dirFrom1to2 * dir1).magnitude;
+            posOnRoom2 = -dirFrom1to2 * (dir2 * room2.size/2f).magnitude / (dirFrom1to2 * dir2).magnitude;
         }
 
-        if(Mathf.Max(room1.Size.x, room1.Size.y)/2 <= hallwayDistFromCorners || Mathf.Max(room2.Size.x, room2.Size.y) / 2 <= hallwayDistFromCorners)
+        if(Mathf.Max(room1.size.x, room1.size.y)/2 <= hallwayDistFromCorners || Mathf.Max(room2.size.x, room2.size.y) / 2 <= hallwayDistFromCorners)
         {
             Debug.Log("hallway Dist From Corners is set too high this may result in unwanted results");
         }
 
-        if((posOnRoom1 - (dir1 * room1.Size / 2f)).magnitude > (new Vector2(dir1.y, dir1.x) * room1.Size / 2f).magnitude - hallwayDistFromCorners)
+        if((posOnRoom1 - (dir1 * room1.size / 2f)).magnitude > (new Vector2(dir1.y, dir1.x) * room1.size / 2f).magnitude - hallwayDistFromCorners)
         {
-            posOnRoom1 -= (posOnRoom1 - (dir1 * room1.Size / 2f)).normalized;
+            posOnRoom1 -= (posOnRoom1 - (dir1 * room1.size / 2f)).normalized;
         }
-        if ((posOnRoom2 - (dir2 * room2.Size / 2f)).magnitude > (new Vector2(dir2.y, dir2.x) * room2.Size / 2f).magnitude - hallwayDistFromCorners)
+        if ((posOnRoom2 - (dir2 * room2.size / 2f)).magnitude > (new Vector2(dir2.y, dir2.x) * room2.size / 2f).magnitude - hallwayDistFromCorners)
         {
-            posOnRoom2 -= (posOnRoom2 - (dir2 * room2.Size / 2f)).normalized;
+            posOnRoom2 -= (posOnRoom2 - (dir2 * room2.size / 2f)).normalized;
         }
 
         if (dir1 == Vector2.down || dir1 == Vector2.left)
@@ -461,17 +452,18 @@ public class MapCreator : MonoBehaviour
     {
         return new Vector2((int)vec.x, (int)vec.y);
     }
+    // returns one of 4 basic dirs between rooms depending on which is the closest
     private Vector2 getBinaryDir(Room room, Vector2 dir)
     {
         Vector2 direction = Vector2.zero;
-        Vector2 roomCenter = room.Position + room.Size / 2f;
+        Vector2 roomCenter = room.position + (Vector2)room.size / 2f;
         // if dir is perpendicular
         if(dir.x == 0 || dir.y == 0)
         {
             return new Vector2(dir.normalized.x, dir.normalized.y);
         }
         // is on horizontal wall
-        if(Mathf.Abs((dir * (room.Size/2f).y / dir.y).x) < room.Size.x / 2f )
+        if(Mathf.Abs((dir * ((Vector2)room.size/2f).y / dir.y).x) < room.size.x / 2f )
         {
             if(dir.y > 0)
             {
@@ -505,7 +497,6 @@ public class MapCreator : MonoBehaviour
         for(int i = 0; i < testSize; i++)
         {
             // create rooms
-            roundSize();
             deleteAllChildren();
             grid = createGrid();
             generateRooms();
@@ -530,7 +521,7 @@ public class MapCreator : MonoBehaviour
     private void generateRooms()
     {
         int roomCount = UnityEngine.Random.Range(minRooms, maxRooms + 1);
-        Room[] roomTypeRooms = getRoomsOfType(rooms, RoomTypes.Room);
+        Room[] roomTypeRooms = getRoomsOfType(rooms, Room.RoomTypes.Room);
         int inFailedAttemps = failedAttemps;
         for (int i = 0; i < roomCount; i++)
         {
@@ -557,12 +548,12 @@ public class MapCreator : MonoBehaviour
     }
 
     // return array of rooms of type
-    private Room[] getRoomsOfType(Room[] rooms, RoomTypes roomType)
+    private Room[] getRoomsOfType(Room[] rooms, Room.RoomTypes roomType)
     {
         List<Room> roomsOfType = new List<Room>();
         foreach(Room room in rooms)
         {
-            if(room.RoomType == roomType)
+            if(room.roomType == roomType)
             {
                 roomsOfType.Add(room);
             }
@@ -616,16 +607,6 @@ public class MapCreator : MonoBehaviour
         }
     }
 
-    // rounds size of all rooms
-    private void roundSize()
-    {
-        for(int i = 0; i < rooms.Length; i++)
-        {
-            rooms[i].Size.x = Mathf.Round(rooms[i].Size.x);
-            rooms[i].Size.y = Mathf.Round(rooms[i].Size.y);
-        }
-    }
-
     // create 2D bool array where each room / corridor ocupies a space
     private bool[,] createGrid()
     {
@@ -637,13 +618,13 @@ public class MapCreator : MonoBehaviour
         int maxSize = 0;
         foreach (Room room in rooms)
         {
-            if(room.Size.x > maxSize)
+            if(room.size.x > maxSize)
             {
-                maxSize = (int)room.Size.x;
+                maxSize = (int)room.size.x;
             }
-            if (room.Size.y > maxSize)
+            if (room.size.y > maxSize)
             {
-                maxSize = (int)room.Size.y;
+                maxSize = (int)room.size.y;
             }
         }
         maxSize = maxSize * (maxRooms + 1 );
@@ -654,34 +635,31 @@ public class MapCreator : MonoBehaviour
     // instantiates room sprite into scene and adds it to grid
     private void CreateRoom(Room room, Vector2 bottomLeft)
     {
-        GameObject roomObject = new GameObject(room.RoomName);
+        GameObject roomObject = Instantiate(room.gameObject);
+        room = roomObject.GetComponent<Room>();
         RoomBehaviour roomBehaviour = roomObject.AddComponent<RoomBehaviour>();
-        SpriteRenderer roomSpriteRenderer = roomObject.AddComponent<SpriteRenderer>();
         roomObject.tag = "Room";
-        roomObject.transform.parent = transform;
-        roomObject.transform.localPosition = bottomLeft + room.Size/2f;
+
+        room.scaleToSize();
+
         // room trigger cretion
         BoxCollider2D roomTrigger = roomObject.AddComponent<BoxCollider2D>();
-        roomTrigger.size = room.Size - Vector2.one * 2 * wallThicknes;
+        roomTrigger.size = (Vector2)room.size / room.gameObject.transform.localScale.x;
         roomTrigger.isTrigger = true;
 
-        roomSpriteRenderer.sprite = room.RoomSprite;
-        roomSpriteRenderer.sharedMaterial = room.SpriteMaterial;
-        roomSpriteRenderer.sortingOrder = 2;
+        room.position = bottomLeft + (Vector2)room.size/2f;
+        room.updatePosition();
 
-        room.Position = bottomLeft;
-        room.RoomObject = roomObject;
+        roomObject.transform.parent = transform;
 
-        if (room.Size == Vector2.zero)
+        if (room.size == Vector2.zero)
         {
-            Debug.Log("room size of " + room.RoomName + " sprite not set");
+            Debug.Log("room size of " + room.roomName + " sprite not set");
             DestroyImmediate(roomObject);
             return;
         }
         else
         {
-            roomSpriteRenderer.drawMode = SpriteDrawMode.Sliced;
-            roomSpriteRenderer.size = room.Size;
             builtRooms.Add(room);
             fillRectInGrid(room, (int)bottomLeft.x, (int)bottomLeft.y);
             roomBehaviour.room = room;
@@ -720,8 +698,8 @@ public class MapCreator : MonoBehaviour
     // fills 2D bool array acording to room size and position - LB = left bottom corner coords of rect
     private void fillRectInGrid(Room room, int LBx, int LBy)
     {
-        int rectXSize = (int)room.Size.y;
-        int rectYSize = (int)room.Size.x;
+        int rectXSize = room.size.y;
+        int rectYSize = room.size.x;
 
         for(int y = 0; y < rectXSize; y++)
         {
@@ -755,9 +733,9 @@ public class MapCreator : MonoBehaviour
     // is there enought space to create room
     private bool roomFits(Room room, int LBx, int LBy)
     {
-        for(int y = LBy - minRoomDist; y < LBy + room.Size.y + minRoomDist; y++)
+        for(int y = LBy - minRoomDist; y < LBy + room.size.y + minRoomDist; y++)
         {
-            for(int x = LBx - minRoomDist; x < LBx + room.Size.x + minRoomDist; x++)
+            for(int x = LBx - minRoomDist; x < LBx + room.size.x + minRoomDist; x++)
             {
                 if(x >= 0 && x < grid.GetLength(0) && y >= 0 && y < grid.GetLength(1))
                 {
@@ -820,7 +798,7 @@ public class MapCreator : MonoBehaviour
     private Vector2 getRandomRoomPosition(Room room, int startX, int startY, int endX, int endY)
     {
         Vector2 newPos = new Vector2(startX, startY);
-        if(room.Size.x * 2 <= endX - startX && room.Size.y * 2 <= endY - startY)
+        if(room.size.x * 2 <= endX - startX && room.size.y * 2 <= endY - startY)
         {
             int randX = UnityEngine.Random.Range(0, 2);
             int randY = UnityEngine.Random.Range(0, 2);
@@ -854,4 +832,5 @@ public class MapCreator : MonoBehaviour
 
         return false;
     }
+
 }

@@ -8,7 +8,7 @@ public class RoomBehaviour : MonoBehaviour
     List<GameObject> enemies;
     
     [HideInInspector]
-    public MapCreator.Room room;
+    public Room room;
     [HideInInspector]
     public MapCreator mapCreator;
 
@@ -75,19 +75,19 @@ public class RoomBehaviour : MonoBehaviour
 
     private void spawnEnemies()
     {
-        RoomInfo roomInfo = room.RoomInfo;
+        RoomInfo roomInfo = room.roomInfo;
         enemies = new List<GameObject>();
-        Vector2 roomSize = room.Size * mapCreator.scale;
-        Vector3 pos = transform.position - new Vector3(roomSize.x, roomSize.y, 0) / 2f;
+        Vector2 roomSize = (Vector2)room.size * mapCreator.scale;
+        Vector3 pos = transform.position;
         foreach (RoomInfo.EnemyToSpawn enemyToSpawn in roomInfo.enemiesToSpawn)
         {
             for (int i = 0; i < enemyToSpawn.count; i++)
             {
                 Vector3 spawnPos = pos;
                 Collider2D enemyCollider = enemyToSpawn.enemy.GetComponent<Collider2D>();
-                Vector3 colliderSize = enemyToSpawn.enemy.transform.localScale.x * enemyCollider.bounds.extents;
-                spawnPos.x += Random.Range(0 + colliderSize.x, roomSize.x - colliderSize.x);
-                spawnPos.y += Random.Range(0 + colliderSize.y, roomSize.y - colliderSize.y);
+                Vector3 colliderSize = enemyCollider.bounds.extents;
+                spawnPos.x += Random.Range(-roomSize.x/2f + colliderSize.x, roomSize.x/2f - colliderSize.x);
+                spawnPos.y += Random.Range(-roomSize.y/2f + colliderSize.y, roomSize.y/2f- colliderSize.y);
                 enemies.Add(Instantiate(enemyToSpawn.enemy, spawnPos, Quaternion.identity));
             }
         }
@@ -114,7 +114,7 @@ public class RoomBehaviour : MonoBehaviour
     {
         float scale = mapCreator.scale;
         Vector3 playerToCenterDist = transform.position - playerPos;
-        if(Mathf.Abs(playerToCenterDist.x) < Mathf.Abs(room.Size.x)/2f * scale - scale && Mathf.Abs(playerToCenterDist.y) < Mathf.Abs(room.Size.y) * scale / 2f - scale)
+        if(Mathf.Abs(playerToCenterDist.x) < room.size.x/2f * scale - scale && Mathf.Abs(playerToCenterDist.y) < room.size.y * scale / 2f - scale)
         {
             return true;
         }
