@@ -84,8 +84,8 @@ public class RoomBehaviour : MonoBehaviour
             for (int i = 0; i < enemyToSpawn.count; i++)
             {
                 Vector3 spawnPos = pos;
-                Collider2D enemyCollider = enemyToSpawn.enemy.GetComponent<Collider2D>();
-                Vector3 colliderSize = enemyCollider.bounds.extents;
+                SpriteRenderer enemySprite = enemyToSpawn.enemy.GetComponent<SpriteRenderer>();
+                Vector3 colliderSize = enemySprite.bounds.extents;
                 spawnPos.x += Random.Range(-roomSize.x/2f + colliderSize.x, roomSize.x/2f - colliderSize.x);
                 spawnPos.y += Random.Range(-roomSize.y/2f + colliderSize.y, roomSize.y/2f- colliderSize.y);
                 enemies.Add(Instantiate(enemyToSpawn.enemy, spawnPos, Quaternion.identity));

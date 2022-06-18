@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEditor;
 
 public class MapCreator : MonoBehaviour
 {
@@ -13,19 +12,10 @@ public class MapCreator : MonoBehaviour
     [System.Serializable]
     public struct Corridor
     {
-        [HideInInspector]
-        public int Size;
-        public Material SpriteMaterial;
-        public Sprite VerticalHallway;
-        public Sprite HorizontalHallway;
-        public Sprite UpLeftTurnHallway;
-        public Sprite UpRightTurnHallway;
-        public Sprite DownLeftTurnHallway;
-        public Sprite DownRightTurnHallway;
+        public GameObject StraightHallway;
+        public GameObject TurnHallWay;
         [HideInInspector]
         public Vector2 Position;
-        [HideInInspector]
-        public GameObject CorridorObject;
     }
 
     public Room[] rooms;
@@ -246,10 +236,24 @@ public class MapCreator : MonoBehaviour
         Vector2 absDir = new Vector2(Mathf.Abs(dir.x), Mathf.Abs(dir.y));
         Vector2 offset = ((dir - absDir) / 2f).magnitude * Vector2.one;
         GameObject gate = Instantiate(room.gate);
-        Vector3 gatePos = pos + new Vector2(dir.y, dir.x) / 2f - dir * wallThicknes + dir * room.gateThickness / 2f + offset;
+        Hallway sizeScaler = gate.GetComponent<Hallway>();
+        sizeScaler.scaleToSize();
+        Vector3 gatePos = pos + new Vector2(dir.y, dir.x) / 2f - dir * wallThicknes - adjustForDir(sizeScaler.Size / 2f, dir) + dir * room.gateThickness / 2f + offset;
         gate.transform.position = gatePos;
         gate.transform.rotation = Quaternion.Euler(0, 0, Mathf.Abs(dir.y) * 90);
         gate.transform.parent = room.transform;
+    }
+
+    private Vector2 adjustForDir(Vector2 size, Vector2 dir)
+    {
+        if(dir.x != 0)
+        {
+            return size * dir;
+        }
+        else
+        {
+            return dir * new Vector2(size.y, size.x);
+        }
     }
 
     // create all corridors
@@ -283,7 +287,6 @@ public class MapCreator : MonoBehaviour
         GameObject corridorParrent = new GameObject("corridor");
         corridorParrent.transform.parent = transform;
         Vector2[] startEndCoords = getStartEndCorridorCoords(room1, room2);
-        Vector2 pos = transform.position;
 
         if (isInsideRect(room1.position - (Vector2)room1.size/2f - Vector2.one, room1.position + (Vector2)room1.size / 2f, startEndCoords[0]) || 
             isInsideRect(room1.position - (Vector2)room1.size / 2f, room1.position + (Vector2)room1.size / 2f, startEndCoords[0]))
@@ -297,8 +300,8 @@ public class MapCreator : MonoBehaviour
         }
         createGate(room1, startEndCoords[0], startEndCoords[2]);
         createGate(room2, startEndCoords[1], startEndCoords[3]);
-        createCorridorChunk(chooseCorridorSprite(startEndCoords[2], startEndCoords[2], corridor), corridor.SpriteMaterial, corridor.Size * Vector2.one, startEndCoords[0], corridorParrent);
-        createCorridorChunk(chooseCorridorSprite(startEndCoords[3], startEndCoords[3], corridor), corridor.SpriteMaterial, corridor.Size * Vector2.one, startEndCoords[1], corridorParrent);
+        createCorridorChunk(chooseCorridorSprite(startEndCoords[2], startEndCoords[2], corridor), startEndCoords[0], corridorParrent);
+        createCorridorChunk(chooseCorridorSprite(startEndCoords[3], startEndCoords[3], corridor), startEndCoords[1], corridorParrent);
         startEndCoords[0] += startEndCoords[2];
         startEndCoords[1] += startEndCoords[3];
 
@@ -328,24 +331,25 @@ public class MapCreator : MonoBehaviour
                 lastDir = pathTiles[i] - pathTiles[i - 1];
                 nextDir = pathTiles[i + 1] - pathTiles[i];
             }
-            Sprite chosenSprite = chooseCorridorSprite(lastDir, nextDir, corridor);
+            GameObject chosenCorridorObject = chooseCorridorSprite(lastDir, nextDir, corridor);
 
-            createCorridorChunk(chosenSprite, corridor.SpriteMaterial, corridor.Size * Vector2.one, pathTiles[i] + pos, corridorParrent);
+            createCorridorChunk(chosenCorridorObject, pathTiles[i], corridorParrent);
         }
     }
 
-    private Sprite chooseCorridorSprite(Vector2 lastDir, Vector2 nextDir, Corridor corridor)
+    private GameObject chooseCorridorSprite(Vector2 lastDir, Vector2 nextDir, Corridor corridor)
     {
-        Sprite chosenSprite;
+        GameObject chosenCorridorObject;
         if(lastDir.x == nextDir.x || lastDir.y == nextDir.y)
         {
             if(lastDir.y == 0)
             {
-                chosenSprite = corridor.HorizontalHallway;
+                chosenCorridorObject = Instantiate(corridor.StraightHallway);
             }
             else
             {
-                chosenSprite = corridor.VerticalHallway;
+                chosenCorridorObject = Instantiate(corridor.StraightHallway);
+                chosenCorridorObject.transform.rotation = Quaternion.Euler(0, 0, 90);
             }
         }
         else
@@ -354,48 +358,62 @@ public class MapCreator : MonoBehaviour
             {
                 if (nextDir.x == 1)
                 {
-                    chosenSprite = corridor.UpRightTurnHallway;
+                    // UpRight
+                    chosenCorridorObject = Instantiate(corridor.TurnHallWay);
+                    chosenCorridorObject.transform.rotation = Quaternion.Euler(0, 0, -90);
                 }
                 else
                 {
-                    chosenSprite = corridor.UpLeftTurnHallway;
+                    // UpLeft
+                    chosenCorridorObject = Instantiate(corridor.TurnHallWay);
+                    chosenCorridorObject.transform.rotation = Quaternion.Euler(0, 0, 180);
                 }
             }
             else if(lastDir.y == -1)
             {
                 if (nextDir.x == 1)
                 {
-                    chosenSprite = corridor.DownRightTurnHallway;
+                    // DownRight
+                    chosenCorridorObject = Instantiate(corridor.TurnHallWay);
                 }
                 else
                 {
-                    chosenSprite = corridor.DownLeftTurnHallway;
+                    // DownLeft
+                    chosenCorridorObject = Instantiate(corridor.TurnHallWay);
+                    chosenCorridorObject.transform.rotation = Quaternion.Euler(0, 0, 90);
                 }
             }
             else if(lastDir.x == 1)
             {
                 if(nextDir.y == 1)
                 {
-                    chosenSprite = corridor.DownLeftTurnHallway;
+                    // DownLeft
+                    chosenCorridorObject = Instantiate(corridor.TurnHallWay);
+                    chosenCorridorObject.transform.rotation = Quaternion.Euler(0, 0, 90);
                 }
                 else
                 {
-                    chosenSprite = corridor.UpLeftTurnHallway;
+                    // UpLeft
+                    chosenCorridorObject = Instantiate(corridor.TurnHallWay);
+                    chosenCorridorObject.transform.rotation = Quaternion.Euler(0, 0, 180);
                 }
             }
             else
             {
                 if(nextDir.y == 1)
                 {
-                    chosenSprite = corridor.DownRightTurnHallway;
+                    // DownRight
+                    chosenCorridorObject = Instantiate(corridor.TurnHallWay);
                 }
                 else
                 {
-                    chosenSprite = corridor.UpRightTurnHallway;
+                    // UpRight
+                    chosenCorridorObject = Instantiate(corridor.TurnHallWay);
+                    chosenCorridorObject.transform.rotation = Quaternion.Euler(0, 0, -90);
                 }
             }
         }
-        return chosenSprite;
+        return chosenCorridorObject;
     }
 
     // return start, end positions of corridor and directions from room1 room2
@@ -601,10 +619,6 @@ public class MapCreator : MonoBehaviour
         {
             minRooms = maxRooms;
         }
-        for(int i = 0; i < corridors.Length; i++)
-        {
-            corridors[i].Size = 1;
-        }
     }
 
     // create 2D bool array where each room / corridor ocupies a space
@@ -667,32 +681,15 @@ public class MapCreator : MonoBehaviour
         }
     }
 
-    private void createCorridorChunk(Sprite corridorSprite, Material corridorMaterial, Vector2 corridorSize, Vector2 bottomLeft, GameObject parrent, string name = "corridor chunk")
+    private void createCorridorChunk(GameObject corridorObject, Vector2 bottomLeft, GameObject parrent, string name = "corridor chunk")
     {
-        GameObject roomObject = new GameObject(name);
-        SpriteRenderer roomSpriteRenderer = roomObject.AddComponent<SpriteRenderer>();
-        Vector2 pos = transform.position;
-
-        roomObject.transform.parent = parrent.transform;
-        roomObject.transform.localPosition = bottomLeft + corridorSize / 2f;
-
-
-        roomSpriteRenderer.sprite = corridorSprite;
-        roomSpriteRenderer.sharedMaterial = corridorMaterial;
-        roomSpriteRenderer.sortingOrder = 1;
-
-        if (corridorSize == Vector2.zero)
-        {
-            Debug.Log("size of corridoor not set");
-            DestroyImmediate(roomObject);
-            return;
-        }
-        else
-        {
-            roomSpriteRenderer.drawMode = SpriteDrawMode.Sliced;
-            roomSpriteRenderer.size = corridorSize;
-            fillRectInGrid(corridorSize, bottomLeft-pos);
-        }
+        Vector3 corridorPos = (Vector3)bottomLeft + new Vector3(0.5f, 0.5f, 0) + transform.position;
+        Hallway hallwayScript = corridorObject.GetComponent<Hallway>();
+        hallwayScript.scaleToSize();
+        corridorObject.transform.position = corridorPos;
+        corridorObject.name = name;
+        corridorObject.transform.parent = parrent.transform;
+        fillRectInGrid(Vector2.one, bottomLeft);
     }
 
     // fills 2D bool array acording to room size and position - LB = left bottom corner coords of rect
