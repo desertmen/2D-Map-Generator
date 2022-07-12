@@ -1,5 +1,5 @@
 # 2D-Map-Generator
-2D map generator is a system for creating randomised maps from prefabs of rooms and corridors
+2D map generator is a system for creating randomised maps from prefabs of rooms corridors and gates, uncleared room will spawn enemies and close gates until all enemies are dead
 
 MAPCREATOR
 empty gameobject with MapCreator script attached to it
