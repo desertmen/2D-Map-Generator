@@ -32,6 +32,10 @@ public class SizeScaler : MonoBehaviour
     {
         for (int i = 0; i < lights.Length; i++)
         {
+            if(lights[i].lightType != Light2D.LightType.Point)
+            {
+                continue;
+            }
             lights[i].pointLightInnerRadius *= scale;
             lights[i].pointLightOuterRadius *= scale;
         }

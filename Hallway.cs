@@ -25,7 +25,20 @@ public class Hallway : MonoBehaviour
 
     public void scaleLights(float scale, float parrentScale = 1)
     {
-        sizeScaler.scalePointLights2D(searchChildren<Light2D>(transform).ToArray(), scale * parrentScale);
+        if (sizeScaler == null)
+        {
+            sizeScaler = GetComponent<SizeScaler>();
+            if (sizeScaler == null)
+            {
+                Debug.Log(gameObject.name + ": SizeScaler component not found");
+            }
+        }
+        Light2D[] lights = searchChildren<Light2D>(transform).ToArray();
+        if(lights == null || lights.Length == 0)
+        {
+            return;
+        }
+        sizeScaler.scalePointLights2D(lights, scale * parrentScale);
     }
 
     private SpriteRenderer findLargestSprite()

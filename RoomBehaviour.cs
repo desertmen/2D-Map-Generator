@@ -85,6 +85,10 @@ public class RoomBehaviour : MonoBehaviour
             {
                 Vector3 spawnPos = pos;
                 SpriteRenderer enemySprite = enemyToSpawn.enemy.GetComponent<SpriteRenderer>();
+                if(enemySprite == null)
+                {
+                    enemySprite = searchChildren<SpriteRenderer>(enemyToSpawn.enemy.transform)[0];
+                }
                 Vector3 colliderSize = enemySprite.bounds.extents;
                 spawnPos.x += Random.Range(-roomSize.x/2f + colliderSize.x, roomSize.x/2f - colliderSize.x);
                 spawnPos.y += Random.Range(-roomSize.y/2f + colliderSize.y, roomSize.y/2f- colliderSize.y);
@@ -119,5 +123,28 @@ public class RoomBehaviour : MonoBehaviour
             return true;
         }
         return false;
+    }
+
+    private List<T> searchChildren<T>(Transform parent)
+    {
+        List<T> list = new List<T>();
+        searchChildren<T>(parent, list);
+        return list;
+    }
+
+    private void searchChildren<T>(Transform parent, List<T> list)
+    {
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            var component = parent.GetChild(i).GetComponent<T>();
+            if (component != null)
+            {
+                if (component.ToString().Equals("null") == false)
+                {
+                    list.Add(component);
+                }
+            }
+            searchChildren(parent.GetChild(i), list);
+        }
     }
 }

@@ -100,6 +100,37 @@ public class MapCreator : MonoBehaviour
         {
             room.scaleLights(scale, room.transform.localScale.x);
         }
+        Hallway[] hallWays = searchChildren<Hallway>(transform).ToArray();
+        foreach (Hallway hallway in hallWays){
+            if(hallway.gameObject.tag == "Gate")
+            {
+                continue;
+            }
+            hallway.scaleLights(scale, hallway.transform.localScale.x * 12);
+        }
+    }
+
+    private List<T> searchChildren<T>(Transform parent)
+    {
+        List<T> list = new List<T>();
+        searchChildren<T>(parent, list);
+        return list;
+    }
+
+    private void searchChildren<T>(Transform parent, List<T> list)
+    {
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            var component = parent.GetChild(i).GetComponent<T>();
+            if (component != null)
+            {
+                if (component.ToString().Equals("null") == false)
+                {
+                    list.Add(component);
+                }
+            }
+            searchChildren(parent.GetChild(i), list);
+        }
     }
 
     private void spawnPlayer()
@@ -584,7 +615,7 @@ public class MapCreator : MonoBehaviour
         builtRooms = new List<Room>();
         for(int i = transform.childCount - 1; i >= 0; i--)
         {
-            DestroyImmediate(transform.GetChild(i).gameObject);
+            Destroy(transform.GetChild(i).gameObject);
         }
     }
 
