@@ -48,17 +48,30 @@ each gate prefab needs to contain SizeScaler script, Hallway script and GateScri
   
 
 ColliderCreator = Class holding methods for computing points for collider of the map
+
 ConnectionFinder = Class holding methods for finding minimal spaning tree between rooms
+
 GateScript = Class holding methods for manipulating with Gate
+
 HallWay = Class used for holding information and scaling of corridors and gates
+
 Heap = heap data structure used by ConnectionFinder class
+
 MapCreator = main script generating map
+
 MyDelaunator = class holding simplified methods for using Delaunay Triangulation algorithm by nol1fe - https://github.com/nol1fe/delaunator-sharp
+
 Node = class used by PathFinder (represents nodes in A* algorithm)
+
 PathFinder = A* algorithm used for finding paths of corridors between rooms
+
 Room = class holding methods for holding information and scaling of room prefabs
+
 RoomBehaviour = script controlling spawning of enemies in room when enetered
+
 RoomInfo = scriptable object holding information about what and how many enemies to be spawned by RoomBehabiour in each room
+
 SizeScaler = class holding methods for scaling objects according to largest sprite in children of object SizeScaler is attached to
+
 MapCreatorEditor = custom Editor for MapCreator script
   
