@@ -5,25 +5,37 @@ MAPCREATOR
 empty gameobject with MapCreator script attached to it
 
   - MapCreator creates the map using room, corridor and gate prefabs
+
   Rooms = array of room prefabs
+
   Corridors = array of pairs of straich and turn corridor prefabs
+
   MaxRooms = maximal count of rooms generated
+
   MinRooms = minimal count of rooms generated
+
   MinRoomDist = minimal distance between each room
+
   RoomIterations = how many times will the script try to fit room into map
+
   HallwayDistFromCorners = minimal distance between corridor attached to the room wall and corners of the rooms
   
   Scale = scale applied evenly to all part of the map
+
   ShowGrid = shows grid where red rectangles represent occupied spaces and white represents empty spaces
   
   ShowMapBoundaries = shows the boundaries of map according to Scale
+
   PlayerTransform = transform of player GameObject
+
   MapSize = size of the map (for scale of 1), if input equals (0, 0) size will be automaticaly calculated, this generaly results in larger map area
   
   Create New Map = button for creating new map (new map is also created on Start)
+
   TestSize = how many times will test itterate
-  Test Room Generator Settings = will try to generate map many times (specified by TestSize), 
-  prints in console how many % of attempts succeded in generating desired number of rooms
+
+  Test Room Generator Settings = will try to generate map many times (specified by TestSize), prints in console how many % of attempts succeded in generating number of rooms
+  
   Test Map Generator Button = wil generate map many times (specified by TestSize), doesnt output anything int console
 
 ROOM PREFABS
