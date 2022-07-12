@@ -4,7 +4,7 @@
 MAPCREATOR
 empty gameobject with MapCreator script attached to it
 
-  - MapCreator creates the map using room, corridor and gate prefabs
+- MapCreator creates the map using room, corridor and gate prefabs based on these settings:
   
   - Rooms = array of room prefabs
   
